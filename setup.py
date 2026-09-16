@@ -20,9 +20,10 @@ import platform
 import subprocess
 import sysconfig
 
-from distutils.version import LooseVersion
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
+
+SOURCE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 #
 # This setup script was borrowed and modified from the pybind11 sample
@@ -30,28 +31,63 @@ from setuptools.command.build_ext import build_ext
 #
 
 
-def get_version_from_git():
+def _git_output(*args):
     """
-    Helper to get the ifm3d package version from git
+    Run a git command in the source directory, or return None if it fails
     """
     try:
-        subprocess.check_call(['git', '--version'])
-    except OSError:
-        return "0.0.0"
+        return subprocess.check_output(
+            ["git"] + list(args),
+            cwd=SOURCE_DIR,
+            stderr=subprocess.DEVNULL).decode("utf-8").strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
-    version = subprocess.check_output(
-        ["git", "describe", "--abbrev=0", "--tags"]).decode("utf-8").strip()
 
-    version_ahead = int(subprocess.check_output(
-        ["git", "rev-list", version + "..HEAD", "--count"]).decode("utf-8").strip())
+def get_version_from_git():
+    """
+    Helper to get the ifm3d package version from the most recent git tag.
+    Returns None when git is unavailable or no tag can be found (e.g. in a
+    shallow or tag-less clone, as created by `pip`/`uv install git+...`).
+    """
+    version = _git_output("describe", "--abbrev=0", "--tags")
+    if not version:
+        return None
 
-    if version_ahead > 0:
+    version_ahead = _git_output("rev-list", version + "..HEAD", "--count")
+
+    if version_ahead and int(version_ahead) > 0:
         # PyPI does not allow uploading versions with metadata so we can't include the commit hash...
         version = "{}-{}".format(version, version_ahead)
 
-    version = version.lstrip("v")
+    return version.lstrip("v")
 
-    return version
+
+def get_version_from_file():
+    """
+    Helper to get the ifm3d package version from the VERSION file, which is
+    the same fallback the CMake build uses when git is not available. The file
+    holds '*'-separated fields:
+    FULL*STRING*MAJOR*MINOR*PATCH*TWEAK*AHEAD*SHA
+    """
+    try:
+        with open(os.path.join(SOURCE_DIR, "VERSION"), encoding="utf-8") as f:
+            fields = f.read().strip().split("*")
+    except OSError:
+        return None
+
+    # Field 1 is the tag the release was cut from, e.g. 'v2.0.7'
+    if len(fields) < 2 or not fields[1]:
+        return None
+
+    return fields[1].lstrip("v")
+
+
+def get_version():
+    """
+    Helper to get the ifm3d package version
+    """
+    return get_version_from_git() or get_version_from_file() or "0.0.0"
 
 
 class CMakeExtension(Extension):
@@ -69,9 +105,9 @@ class CMakeBuild(build_ext):
                                ", ".join(e.name for e in self.extensions))
 
         if platform.system() == "Windows":
-            cmake_version = LooseVersion(
-                re.search(r'version\s*([\d.]+)', out.decode()).group(1))
-            if cmake_version < '3.1.0':
+            cmake_version = tuple(int(part) for part in re.search(
+                r'version\s*([\d.]+)', out.decode()).group(1).split('.'))
+            if cmake_version < (3, 1, 0):
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
         for ext in self.extensions:
@@ -144,7 +180,7 @@ def read_description(fname):
 
 setup(
     name='ifm3dpy',
-    version=get_version_from_git(),
+    version=get_version(),
     author='ifm Robotics Perception',
     author_email='support.robotics@ifm.com',
     description='Library for working with ifm pmd-based 3D ToF Cameras',
@@ -156,7 +192,22 @@ setup(
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     packages=find_packages(),
+    python_requires='>=3.10',
     install_requires=['numpy'],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: C++',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
+        'Topic :: Scientific/Engineering',
+    ],
     project_urls={
         'Documentation': 'https://ifm3d.com/',
         'Issue Tracker': 'https://github.com/ifm/ifm3d/issues',

@@ -1,0 +1,8 @@
+# Build configuration for the ifm3dpy python package.
+#
+# The package metadata lives in setup.py, because the version is derived at
+# build time from the most recent git tag (or the VERSION file, for sources
+# without git history) and the extension is built through CMake.
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"

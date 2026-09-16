@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Python 3.14 support: `ifm3dpy` now declares its supported interpreters in its metadata (`Requires-Python: >=3.10` and classifiers up to 3.14), and the build no longer relies on modules removed from recent Python versions
+- Declare the build backend in `pyproject.toml`, so `pip`/`uv` no longer fall back to the legacy `setup.py` build path
+
+### Fixed
+- Fix building `ifm3dpy` from a source tree without git tags (such as the clone made by `pip install git+...` or `uv add git+...`): `setup.py` and the CMake build now fall back to the `VERSION` file instead of failing with `fatal: No names found, cannot describe anything`
+- Replace the use of `distutils` in `setup.py`, which was removed from the standard library in Python 3.12
 
 ## 2.0.7 - 2026-09-02
 ### Added

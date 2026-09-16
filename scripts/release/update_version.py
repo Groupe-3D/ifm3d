@@ -29,7 +29,7 @@ def update_changelog(version):
     update_file(filename,text_to_search,text_to_replace)
 
 def update_version_file(version):
-    result = re.search('^v(\d+).(\d+).(\d+)',version)
+    result = re.search(r'^v(\d+).(\d+).(\d+)',version)
     major_version = result.group(1)
     minor_version = result.group(2)
     patch_version = result.group(3)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--version', default=None, required=True, help='version of ifm3d')
     args = parser.parse_args()
     version = args.version
-    match_found = bool(re.match("^[v]{1}\d{1,2}\.\d{1,2}\.\d{1,3}", version))
+    match_found = bool(re.match(r"^[v]{1}\d{1,2}\.\d{1,2}\.\d{1,3}", version))
     if match_found == False:
         raise Exception("Error in version string, please format it to vx.x.x")
     else:

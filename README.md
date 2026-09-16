@@ -28,10 +28,10 @@ For a full compatibility matrix between the ifm3d library, the O3R firmware and 
 
 ifm3d is a C++ based library, with a Python wrapper mirroring the available features. We support the following versions of these two languages:
 
-| Name   | Versions                    |
-| ------ | --------------------------- |
-| Python | 3.9, 3.10, 3.11, 3.12, 3.13 |
-| C++    | GCC 7.5+, MSVC 2019+        |
+| Name   | Versions                     |
+| ------ | ---------------------------- |
+| Python | 3.10, 3.11, 3.12, 3.13, 3.14 |
+| C++    | GCC 7.5+, MSVC 2019+         |
 
 ## Supported operating systems
 

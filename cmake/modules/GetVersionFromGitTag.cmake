@@ -34,14 +34,28 @@
 #
 # Author: Nuno Fachada
 
-# Check if git is found...
+# Check if git is found and can describe a tag. A repository without tags -
+# e.g. the shallow clone made by `pip`/`uv install git+...` - has no version
+# information in git, so fall back to the VERSION file in that case as well.
+set(${PROJECT_NAME}_VERSION_STRING "")
 if (GIT_EXECUTABLE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
-
 	# Get last tag from git
 	execute_process(COMMAND ${GIT_EXECUTABLE} describe --abbrev=0 --tags
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		RESULT_VARIABLE ${PROJECT_NAME}_GIT_DESCRIBE_RESULT
 		OUTPUT_VARIABLE ${PROJECT_NAME}_VERSION_STRING
+		ERROR_QUIET
 		OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+	if (NOT ${PROJECT_NAME}_GIT_DESCRIBE_RESULT EQUAL 0)
+		set(${PROJECT_NAME}_VERSION_STRING "")
+		message(STATUS
+			"No git tag found, falling back to the VERSION file for the ${PROJECT_NAME} version")
+	endif()
+	unset(${PROJECT_NAME}_GIT_DESCRIBE_RESULT)
+endif()
+
+if (${PROJECT_NAME}_VERSION_STRING)
 
 	#How many commits since last tag
 	execute_process(COMMAND ${GIT_EXECUTABLE} rev-list ${${PROJECT_NAME}_VERSION_STRING}..HEAD --count
@@ -107,7 +121,7 @@ if (GIT_EXECUTABLE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
 
 else()
 
-	# Git not available, get version from file
+	# No version information in git, get version from file
 	file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ${PROJECT_NAME}_VERSION_LIST)
 	string(REPLACE "*" ";" ${PROJECT_NAME}_VERSION_LIST ${${PROJECT_NAME}_VERSION_LIST})
 

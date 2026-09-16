@@ -12,4 +12,17 @@ Project-URL: Source Code, https://github.com/ifm/ifm3d
 Description-Content-Type: text/markdown
 License-File: LICENSE
 License-File: LICENSE-thirdparty
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: C++
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.10
 Requires-Dist: numpy
