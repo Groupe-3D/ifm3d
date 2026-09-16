@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Python 3.14 support: `ifm3dpy` now declares its supported interpreters in its metadata (`Requires-Python: >=3.10` and classifiers up to 3.14), and the build no longer relies on modules removed from recent Python versions
-- Declare the build backend in `pyproject.toml`, so `pip`/`uv` no longer fall back to the legacy `setup.py` build path
+- Declare the build backend and build requirements in `pyproject.toml`: `pip`/`uv` no longer fall back to the legacy `setup.py` build path, and building `ifm3dpy` from source no longer needs a system CMake - only a C++ toolchain and git
 
 ### Fixed
 - Fix building `ifm3dpy` from a source tree without git tags (such as the clone made by `pip install git+...` or `uv add git+...`): `setup.py` and the CMake build now fall back to the `VERSION` file instead of failing with `fatal: No names found, cannot describe anything`

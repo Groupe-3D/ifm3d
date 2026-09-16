@@ -4,5 +4,9 @@
 # build time from the most recent git tag (or the VERSION file, for sources
 # without git history) and the extension is built through CMake.
 [build-system]
-requires = ["setuptools>=64"]
+# cmake is declared here so that building from source - e.g.
+# `pip install git+...` or `uv add git+...` - only needs a C++ toolchain and
+# git on the machine. A system cmake, when present, is still picked up by a
+# plain `cmake` invocation outside of an isolated build.
+requires = ["setuptools>=64", "cmake>=3.11,<5"]
 build-backend = "setuptools.build_meta"
