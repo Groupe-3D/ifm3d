@@ -1,0 +1,111 @@
+# Builds the ifm3dpy wheels this fork exists to provide.
+#
+# Upstream ships no wheel for ifm3d 2.x: PyPI stops at 1.6.16 (cp39-cp313) and
+# the GitHub releases carry only .deb packages and a Windows installer. Without a
+# wheel every consumer has to build from source, and that build is expensive —
+# the CMake tree fetches pybind11, fmt, asio, websocketpp, cpp-httplib, tinyxml2
+# and libsodium and compiles them all statically, which takes tens of minutes and
+# needs a C++ toolchain on the machine. Paying that once per tag here, and
+# attaching the result to the release, turns every downstream `uv sync` /
+# `pip install` into a download.
+#
+# To cut a release: push a PEP 440 tag (e.g. v2.0.7.post1). setup.py derives the
+# package version from `git describe`, so the tag *is* the wheel version and it
+# must stay PEP 440-parseable — `v2.0.7-c3d1` would not be.
+name: Build wheels
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.build }}
+    runs-on: ${{ matrix.runner }}
+    # The whole third-party tree is compiled from scratch on every run; a cold
+    # build of both arches lands well under this, but leave room for a slow runner.
+    timeout-minutes: 120
+
+    strategy:
+      # One arch failing should not hide whether the other one builds.
+      fail-fast: false
+      matrix:
+        include:
+          # x86_64: the CI runners and the MaxiPrinter device image (Intel N150).
+          - build: cp314-manylinux_x86_64
+            runner: ubuntu-24.04
+          # aarch64: developer dev containers on Apple Silicon.
+          - build: cp314-manylinux_aarch64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          # setup.py reads the version from the most recent tag, so the tags and
+          # the history leading to them have to be there.
+          fetch-depth: 0
+
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_BUILD: ${{ matrix.build }}
+          # cibuildwheel builds as root inside the container, on a checkout owned
+          # by the runner user. Without this git refuses to read it and setup.py
+          # silently falls back to the VERSION file, producing a wheel that claims
+          # to be the upstream release it was branched from.
+          CIBW_BEFORE_ALL: git config --global --add safe.directory '*'
+          # Smoke test exactly what consumers import. Anything beyond this needs a
+          # VPU on the network, which CI does not have.
+          # `device` and `framegrabber` are pybind submodules set as attributes, so
+          # they are reached through the top-level module, not imported directly.
+          CIBW_TEST_COMMAND: >-
+            python -c "import ifm3dpy; ifm3dpy.device.O3R; ifm3dpy.framegrabber.FrameGrabber; ifm3dpy.buffer_id.JPEG_IMAGE"
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: wheels-${{ matrix.build }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-24.04
+    # Only a tag produces a release; a manual run just leaves the wheels as
+    # build artifacts to download.
+    if: startsWith(github.ref, 'refs/tags/')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: wheelhouse
+
+      - name: Attach wheels to the release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          files: wheelhouse/*.whl
+          # The asset URLs are pinned in consumers' lock files, so a release must
+          # never be reshuffled after the fact — cut a new tag instead.
+          fail_on_unmatched_files: true
+          body: |
+            Fork build of ifm3d ${{ github.ref_name }} with Python 3.14 support.
+
+            Wheels: CPython 3.14, manylinux x86_64 and aarch64. Install one with
+
+            ```toml
+            [tool.uv.sources]
+            ifm3dpy = { url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/<wheel>" }
+            ```
