@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.build }}
+    name: manylinux_${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     # The whole third-party tree is compiled from scratch on every run; a cold
     # build of both arches lands well under this, but leave room for a slow runner.
@@ -37,10 +37,10 @@ jobs:
       matrix:
         include:
           # x86_64: the CI runners and the MaxiPrinter device image (Intel N150).
-          - build: cp314-manylinux_x86_64
+          - arch: x86_64
             runner: ubuntu-24.04
           # aarch64: developer dev containers on Apple Silicon.
-          - build: cp314-manylinux_aarch64
+          - arch: aarch64
             runner: ubuntu-24.04-arm
 
     steps:
@@ -52,9 +52,11 @@ jobs:
           fetch-depth: 0
 
       - name: Build wheel
-        uses: pypa/cibuildwheel@v4.2.1
+        uses: pypa/cibuildwheel@v4.3.1
         env:
-          CIBW_BUILD: ${{ matrix.build }}
+          # Every CPython the consumers run, so a Python bump downstream does not
+          # wait on a new tag here. 3.14 stays until nothing pins it any more.
+          CIBW_BUILD: cp314-manylinux_${{ matrix.arch }} cp315-manylinux_${{ matrix.arch }}
           # cibuildwheel builds as root inside the container, on a checkout owned
           # by the runner user. Without this git refuses to read it and setup.py
           # silently falls back to the VERSION file, producing a wheel that claims
@@ -70,7 +72,7 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: wheels-${{ matrix.build }}
+          name: wheels-manylinux_${{ matrix.arch }}
           path: wheelhouse/*.whl
           if-no-files-found: error
 
@@ -101,9 +103,9 @@ jobs:
           # never be reshuffled after the fact — cut a new tag instead.
           fail_on_unmatched_files: true
           body: |
-            Fork build of ifm3d ${{ github.ref_name }} with Python 3.14 support.
+            Fork build of ifm3d ${{ github.ref_name }} with Python 3.14 and 3.15 support.
 
-            Wheels: CPython 3.14, manylinux x86_64 and aarch64. Install one with
+            Wheels: CPython 3.14 and 3.15, manylinux x86_64 and aarch64. Install one with
 
             ```toml
             [tool.uv.sources]

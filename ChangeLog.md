@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Python 3.15 support: classifiers up to 3.15, and pybind11 bumped to v3.1.0, the first release tested against Python 3.15
 - Python 3.14 support: `ifm3dpy` now declares its supported interpreters in its metadata (`Requires-Python: >=3.10` and classifiers up to 3.14), and the build no longer relies on modules removed from recent Python versions
 - Declare the build backend and build requirements in `pyproject.toml`: `pip`/`uv` no longer fall back to the legacy `setup.py` build path, and building `ifm3dpy` from source no longer needs a system CMake - only a C++ toolchain and git
 
