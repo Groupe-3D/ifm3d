@@ -57,8 +57,11 @@ def get_version_from_git():
     version_ahead = _git_output("rev-list", version + "..HEAD", "--count")
 
     if version_ahead and int(version_ahead) > 0:
-        # PyPI does not allow uploading versions with metadata so we can't include the commit hash...
-        version = "{}-{}".format(version, version_ahead)
+        # A PEP 440 local label: '<tag>-<n>' is invalid once the tag carries a
+        # '.postN' suffix ('2.0.7.post1-1'), and '2.0.7-1' would normalise to
+        # '2.0.7.post1' - a version this fork releases. Wheels are attached to
+        # GitHub releases, never uploaded to PyPI, so a local label is fine.
+        version = "{}+{}".format(version, version_ahead)
 
     return version.lstrip("v")
 
